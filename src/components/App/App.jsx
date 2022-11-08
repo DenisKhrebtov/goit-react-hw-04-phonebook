@@ -1,74 +1,56 @@
-import React from 'react';
+import { useState, useEffect } from 'react';
 
-import ContactForm from '../ContactForm/ContactForm';
-import { ContactList } from '../ContactList/ContactList';
+import { ContactForm } from '../ContactForm/ContactForm';
+import { ContactList } from 'components/ContactForm/ContactList';
 import { Filter } from '../Filter/Filter';
-import { ContactsState } from 'constance/contacts';
+import { ContactsState } from '../../constance/contacts';
+import { getLocal, setLocal } from '../../utils/localStorage';
 
 import { Wrapper, Title } from './App.styled';
 
-export class App extends React.Component {
-  state = {
-    contacts: ContactsState,
-    filter: '',
+export function App() {
+  const [contacts, setContacts] = useState(
+    getLocal('contacts') ?? ContactsState
+  );
+  const [filterContact, setFilterContact] = useState('');
+
+  const deleteContact = contactId => {
+    setContacts(prevState =>
+      prevState.filter(contact => contact.id !== contactId)
+    );
   };
 
-  deleteContact = contactId => {
-    this.setState(prevState => ({
-      contacts: prevState.contacts.filter(contact => contact.id !== contactId),
-    }));
-  };
-
-  addContacts = newContact => {
-    this.state.contacts.find(contact => contact.name === newContact.name)
+  const addContacts = newContact => {
+    contacts.find(contact => contact.name === newContact.name)
       ? alert(`${newContact.name} is already in contacts`)
-      : this.setState(({ contacts }) => ({
-          contacts: [newContact, ...contacts],
-        }));
+      : setContacts(prevState => [newContact, ...prevState]);
   };
 
-  changeFilter = e => {
-    this.setState({ filter: e.currentTarget.value });
+  const changeFilter = e => {
+    setFilterContact(e.currentTarget.value);
   };
 
-  getVisibleContacts = () => {
-    const { filter, contacts } = this.state;
-    const normilizedFilter = filter.toLowerCase();
+  const getVisibleContacts = () => {
+    const normilizedFilter = filterContact.toLowerCase();
 
     return contacts.filter(contact =>
       contact.name.toLowerCase().includes(normilizedFilter)
     );
   };
 
-  componentDidMount() {
-    const contacts = localStorage.getItem('contacts');
-    const parsedContacts = JSON.parse(contacts);
+  useEffect(() => {
+    setLocal('contacts', contacts);
+  }, [contacts]);
 
-    if (parsedContacts) {
-      this.setState({ contacts: parsedContacts });
-    }
-  }
+  const filterContacts = getVisibleContacts();
 
-  componentDidUpdate(prevProps, prevState) {
-    if (this.state.contacts !== prevState.contacts) {
-      localStorage.setItem('contacts', JSON.stringify(this.state.contacts));
-    }
-  }
-
-  render() {
-    const filterContacts = this.getVisibleContacts();
-    const { filter } = this.state;
-    return (
-      <Wrapper>
-        <Title>Phonebook</Title>
-        <ContactForm onSubmit={this.addContacts} />
-        <Title>Contacts</Title>
-        <Filter value={filter} onChange={this.changeFilter} />
-        <ContactList
-          contacts={filterContacts}
-          onDeleteContact={this.deleteContact}
-        />
-      </Wrapper>
-    );
-  }
+  return (
+    <Wrapper>
+      <Title>Phonebook</Title>
+      <ContactForm onSubmit={addContacts} />
+      <Title>Contacts</Title>
+      <Filter value={filterContact} onChange={changeFilter} />
+      <ContactList contacts={filterContacts} onDeleteContact={deleteContact} />
+    </Wrapper>
+  );
 }
